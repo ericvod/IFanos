@@ -4,10 +4,10 @@ import dbConnect from '@/lib/mongoose'
 import Post from '@/models/Post'
 import User from '@/models/User'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: { postId: string } }) {
     await dbConnect()
 
-    const post = await Post.findById(params.id).populate('likes', 'name email')
+    const post = await Post.findById(params.postId).populate('likes', 'name email')
 
     if (!post) {
         return NextResponse.json({ error: 'Post não encontrado' }, { status: 404 })
@@ -17,7 +17,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: { postId: string } }) {
     const session = await getServerSession()
 
     if (!session || !session.user) {
@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
 
-    const post = await Post.findById(params.id)
+    const post = await Post.findById(params.postId)
 
     if (!post) {
         return NextResponse.json({ error: 'Post não encontrado' }, { status: 404 })
@@ -48,7 +48,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     await post.save()
 
-    const updatedPost = await Post.findById(params.id).populate('likes', 'name email')
+    const updatedPost = await Post.findById(params.postId).populate('likes', 'name email')
 
     return NextResponse.json({
         message: userIndex > -1 ? 'Like removido com sucesso' : 'Post curtido com sucesso',
