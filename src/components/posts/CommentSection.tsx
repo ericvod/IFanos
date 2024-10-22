@@ -3,15 +3,29 @@ import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { FaTrash } from 'react-icons/fa'
 
+interface Author {
+    _id: string
+    name: string
+    email: string
+    image?: string
+}
+
+interface Comment {
+    _id: string
+    content: string
+    author: Author
+    createdAt: string
+    updatedAt: string
+}
+
 interface CommentSectionProps {
     postId: string
-    comments: any[]
+    comments: Comment[]
     onAddComment: (content: string) => Promise<boolean>
     onDeleteComment: (commentId: string) => Promise<boolean>
 }
 
 export default function CommentSection({
-    postId,
     comments,
     onAddComment,
     onDeleteComment

@@ -3,6 +3,7 @@
 import React from 'react'
 import { useSession } from 'next-auth/react'
 import { usePosts } from '@/hooks/usePosts'
+import Image from 'next/image'
 import Header from '@/components/layout/Header'
 import PostCard from '../posts/PostCard'
 
@@ -31,7 +32,15 @@ export default function ProfileClient() {
                 <h1 className="text-2xl font-bold mb-4">Perfil</h1>
                 {session?.user && (
                     <div className="mb-6">
-                        {session.user.image && <img src={session.user.image} alt={session.user.name || ''} className="w-20 h-20 rounded-full mb-2" />}
+                        {session.user.image && (
+                            <Image
+                                src={session.user.image}
+                                alt={session.user.name || ''}
+                                width={80}
+                                height={80}
+                                className="rounded-full"
+                            />
+                        )}
                         <h2 className="text-xl font-semibold">{session.user.name}</h2>
                         <p>{session.user.email}</p>
                     </div>

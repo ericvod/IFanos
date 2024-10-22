@@ -53,18 +53,24 @@ export default function PostCard({ post, onEdit, onDelete, onLike }: PostProps) 
     };
 
     const toggleLikes = () => {
-        setShowLikes(!showLikes);
+        setShowLikes(!showLikes)
     };
 
     const tooltipContent = post.likes.length > 0
         ? post.likes.map(user => user.name).join(', ')
-        : 'Ninguém curtiu ainda';
+        : 'Ninguém curtiu ainda'
 
     useEffect(() => {
-        if (showComments) {
+        let isMounted = true
+
+        if (showComments && isMounted) {
             fetchComments(post._id)
         }
-    }, [showComments, post._id])
+
+        return () => {
+            isMounted = false
+        }
+    }, [showComments, post._id, fetchComments])
 
     return (
         <div className="mb-4 p-4 border rounded relative">
