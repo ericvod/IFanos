@@ -1,26 +1,31 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+import { ApiResponse } from '@/types'
+import { ApiError, handleApiError } from '@/lib/errors'
+import { withAuth } from '@/lib/middleware'
 import dbConnect from '@/lib/mongoose'
 import User from '@/models/User'
 
 export async function GET(request: Request, { params }: { params: { email: string } }) {
-    const session = await getServerSession()
-    
-    if (!session || !session.user) {
-        return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-    }
+    return withAuth(async (req, session) => {
+        try {
+            if (session.user?.email !== params.email) {
+                throw new ApiError('Não autorizado', 403)
+            }
 
-    if (session.user.email !== params.email) {
-        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
-    }
+            await dbConnect()
 
-    await dbConnect()
+            const user = await User.findOne({ email: params.email }).select('-password')
 
-    const user = await User.findOne({ email: params.email }).select('-password')
+            if (!user) {
+                throw new ApiError('Usuário não encontrado', 404)
+            }
 
-    if (!user) {
-        return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
-    }
-
-    return NextResponse.json(user)
+            return NextResponse.json<ApiResponse<typeof user>>({
+                data: user,
+                status: 200
+            })
+        } catch (error) {
+            return handleApiError(error)
+        }
+    }, request)
 }

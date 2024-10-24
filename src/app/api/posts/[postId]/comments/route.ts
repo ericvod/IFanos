@@ -1,52 +1,63 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+import { ApiResponse } from '@/types'
+import { ApiError, handleApiError } from '@/lib/errors'
+import { withAuth } from '@/lib/middleware'
 import dbConnect from '@/lib/mongoose'
-import Comment from '@/models/Comment'
 import User from '@/models/User'
+import Comment from '@/models/Comment'
 
 export async function GET(
     request: Request,
     { params }: { params: { postId: string } }
 ) {
-    await dbConnect()
+    try {
+        await dbConnect()
 
-    const comments = await Comment.find({ post: params.postId })
-        .sort({ createdAt: -1 })
-        .populate('author', 'name email image')
+        const comments = await Comment.find({ post: params.postId })
+            .sort({ createdAt: -1 })
+            .populate('author', 'name email image')
 
-    return NextResponse.json(comments)
+        return NextResponse.json<ApiResponse<typeof comments>>({
+            data: comments,
+            status: 200
+        })
+    } catch (error) {
+        return handleApiError(error)
+    }
 }
 
 export async function POST(
     request: Request,
     { params }: { params: { postId: string } }
 ) {
-    const session = await getServerSession()
+    return withAuth(async (req, session) => {
+        try {
+            const { content } = await req.json()
 
-    if (!session || !session.user) {
-        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+            await dbConnect()
 
-    const { content } = await request.json()
+            const user = await User.findOne({ email: session.user?.email })
 
-    await dbConnect()
+            if (!user) {
+                throw new ApiError('Usuário não encontrado', 404)
+            }
 
-    const user = await User.findOne({ email: session.user.email })
+            const comment = await Comment.create({
+                content,
+                post: params.postId,
+                author: user._id,
+            })
 
-    if (!user) {
-        return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
-    }
+            const populatedComment = await Comment.findById(comment._id)
+                .populate('author', 'name email image')
 
-    const comment = new Comment({
-        content,
-        post: params.postId,
-        author: user._id,
-    })
-
-    await comment.save()
-
-    const populatedComment = await Comment.findById(comment._id)
-        .populate('author', 'name email image')
-
-    return NextResponse.json(populatedComment, { status: 201 })
+            return NextResponse.json<ApiResponse<typeof populatedComment>>({
+                data: populatedComment,
+                status: 201,
+                message: 'Comentário criado com sucesso'
+            })
+        } catch (error) {
+            return handleApiError(error)
+        }
+    }, request)
 }

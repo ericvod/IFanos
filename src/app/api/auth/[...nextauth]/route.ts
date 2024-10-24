@@ -1,7 +1,7 @@
-import GitHubProvider from "next-auth/providers/github"
-import NextAuth, { DefaultSession } from "next-auth"
-import dbConnect from "@/lib/mongoose"
-import User from "@/models/User"
+import NextAuth, { DefaultSession } from 'next-auth'
+import GitHubProvider from 'next-auth/providers/github'
+import dbConnect from '@/lib/mongoose'
+import User from '@/models/User'
 
 declare module "next-auth" {
     interface Session {

@@ -18,10 +18,6 @@ const PostSchema = new mongoose.Schema({
         }],
         default: []
     },
-    comments: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Comment'
-    }],
     createdAt: {
         type: Date,
         default: Date.now
@@ -30,6 +26,6 @@ const PostSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-});
+})
 
 export default mongoose.models.Post || mongoose.model('Post', PostSchema);

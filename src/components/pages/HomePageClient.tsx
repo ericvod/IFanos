@@ -23,7 +23,7 @@ export default function HomePageClient() {
 
 
     if (status === 'loading') {
-        return <div>Carregando...</div>
+        return <div className="flex justify-center items-center h-screen">Carregando...</div>
     }
 
     return (

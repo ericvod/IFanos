@@ -1,68 +1,59 @@
-import { useState, useCallback, useEffect } from 'react'
-
-interface Post {
-    _id: string
-    content: string
-    author: {
-        _id: string
-        name: string
-        email: string
-        image?: string
-    };
-    likes: Array<{
-        _id: string
-        name: string
-        email: string
-    }>;
-    createdAt: string
-    updatedAt: string
-}
-
-interface Comment {
-    _id: string
-    content: string
-    author: {
-        _id: string
-        name: string
-        email: string
-        image?: string
-    }
-    createdAt: string
-    updatedAt: string
-}
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Post, Comment } from '@/types'
 
 export const usePosts = (initialPosts: Post[] = []) => {
     const [posts, setPosts] = useState<Post[]>(initialPosts)
     const [editingPost, setEditingPost] = useState<Post | null>(null)
     const [content, setContent] = useState('')
     const [comments, setComments] = useState<{ [key: string]: Comment[] }>({})
+    const [isLoading, setIsLoading] = useState(false)
+
+    const initialFetchDone = useRef(false)
 
     const fetchPosts = useCallback(async () => {
-        const response = await fetch('/api/posts')
-        if (response.ok) {
-            const data = await response.json()
-            setPosts(data)
+        if (isLoading) return
+
+        setIsLoading(true)
+
+        try {
+            const response = await fetch('/api/posts')
+            if (response.ok) {
+                const json = await response.json()
+                setPosts(json.data || [])
+            }
+        } catch (error) {
+            console.error('Erro ao buscar posts:', error)
+            setPosts([])
+        } finally {
+            setIsLoading(false)
         }
     }, [])
 
     useEffect(() => {
-        fetchPosts()
+        if (!initialFetchDone.current) {
+            initialFetchDone.current = true
+            fetchPosts()
+        }
     }, [fetchPosts])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!content.trim()) return
 
-        const response = await fetch('/api/posts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ content }),
-        })
-        if (response.ok) {
-            setContent('')
-            fetchPosts()
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content }),
+            })
+            if (response.ok) {
+                setContent('')
+                fetchPosts()
+            }
+        } catch (error) {
+            console.error('Erro ao criar post:', error)
         }
     }
 
@@ -75,55 +66,71 @@ export const usePosts = (initialPosts: Post[] = []) => {
         e.preventDefault()
         if (!editingPost || !content.trim()) return
 
-        const response = await fetch('/api/posts', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id: editingPost._id, content }),
-        })
-        if (response.ok) {
-            setContent('')
-            setEditingPost(null)
-            fetchPosts()
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: editingPost._id, content }),
+            })
+            if (response.ok) {
+                setContent('')
+                setEditingPost(null)
+                fetchPosts()
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar post:', error)
         }
     }
 
     const handleDelete = async (postId: string) => {
-        const response = await fetch('/api/posts', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id: postId }),
-        });
-        if (response.ok) {
-            fetchPosts()
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: postId }),
+            })
+            if (response.ok) {
+                fetchPosts()
+            }
+        } catch (error) {
+            console.error('Erro ao deletar post:', error)
         }
     }
 
     const handleLike = async (postId: string) => {
-        const response = await fetch(`/api/posts/${postId}/like`, {
-            method: 'POST',
-        })
-        if (response.ok) {
-            const updatedPost = await response.json()
-            setPosts(currentPosts =>
-                currentPosts.map(post =>
-                    post._id === postId ? { ...post, likes: updatedPost.likes } : post
+        try {
+            const response = await fetch(`/api/posts/${postId}/like`, {
+                method: 'POST',
+            })
+            if (response.ok) {
+                const { data: updatedLikes } = await response.json()
+                setPosts(currentPosts =>
+                    currentPosts.map(post =>
+                        post._id === postId ? { ...post, likes: updatedLikes } : post
+                    )
                 )
-            )
+            }
+        } catch (error) {
+            console.error('Erro ao curtir post:', error)
         }
     }
 
     const fetchComments = useCallback(async (postId: string) => {
-        const response = await fetch(`/api/posts/${postId}/comments`)
-        if (response.ok) {
-            const data = await response.json()
-            setComments(prev => ({
-                ...prev,
-                [postId]: data
-            }))
+        try {
+            const response = await fetch(`/api/posts/${postId}/comments`)
+            if (response.ok) {
+                const { data } = await response.json()
+                setComments(prev => ({
+                    ...prev,
+                    [postId]: data
+                }))
+            }
+        } catch (error) {
+            console.error('Erro ao buscar comentários:', error)
         }
     }, [])
 
@@ -139,7 +146,7 @@ export const usePosts = (initialPosts: Post[] = []) => {
             })
 
             if (response.ok) {
-                const newComment = await response.json()
+                const { data: newComment } = await response.json()
                 setComments(prev => ({
                     ...prev,
                     [postId]: [newComment, ...(prev[postId] || [])]
