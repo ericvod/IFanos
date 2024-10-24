@@ -37,8 +37,8 @@ export interface CommentSectionProps {
     onDeleteComment: (commentId: string) => Promise<boolean>
 }
 
-export interface ApiResponse<T = any> {
-    data?: T
+export interface ApiResponse<TData> {
+    data?: TData
     error?: string
     message?: string
     status: number

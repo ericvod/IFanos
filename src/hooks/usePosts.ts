@@ -7,7 +7,7 @@ export const usePosts = (initialPosts: Post[] = []) => {
     const [content, setContent] = useState('')
     const [comments, setComments] = useState<{ [key: string]: Comment[] }>({})
     const [isLoading, setIsLoading] = useState(false)
-
+    
     const initialFetchDone = useRef(false)
 
     const fetchPosts = useCallback(async () => {
@@ -27,7 +27,7 @@ export const usePosts = (initialPosts: Post[] = []) => {
         } finally {
             setIsLoading(false)
         }
-    }, [])
+    }, [isLoading])
 
     useEffect(() => {
         if (!initialFetchDone.current) {
