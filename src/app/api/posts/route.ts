@@ -6,22 +6,38 @@ import dbConnect from '@/lib/mongoose'
 import Post from '@/models/Post'
 import User from '@/models/User'
 
-export async function GET() {
-    try {
-        await dbConnect()
+export async function GET(request: Request) {
+    return withAuth(async (req, session) => {
+        try {
+            await dbConnect()
 
-        const posts = await Post.find()
-            .sort({ createdAt: -1 })
-            .populate('author', '_id name email image')
-            .populate('likes', '_id name email')
+            const currentUser = await User.findOne({ email: session.user.email })
 
-        return NextResponse.json<ApiResponse<typeof posts>>({
-            data: posts,
-            status: 200
-        })
-    } catch (error) {
-        return handleApiError(error)
-    }
+            if (!currentUser) {
+                return NextResponse.json<ApiResponse<[]>>({
+                    data: [],
+                    status: 200
+                })
+            }
+
+            const posts = await Post.find({
+                $or: [
+                    { author: { $in: currentUser.following } },
+                    { author: currentUser._id }
+                ]
+            })
+                .sort({ createdAt: -1 })
+                .populate('author', '_id name email image')
+                .populate('likes', '_id name email')
+
+            return NextResponse.json<ApiResponse<typeof posts>>({
+                data: posts,
+                status: 200
+            })
+        } catch (error) {
+            return handleApiError(error)
+        }
+    }, request)
 }
 
 export async function POST(request: Request) {

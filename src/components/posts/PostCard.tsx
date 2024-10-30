@@ -17,8 +17,10 @@ export default function PostCard({ post, onEdit, onDelete, onLike }: PostCardPro
     const {
         comments,
         fetchComments,
+        commentCounts,
         addComment,
-        deleteComment
+        deleteComment,
+        likeComment,
     } = usePosts()
 
     const formatDate = (dateString: string) => {
@@ -130,7 +132,7 @@ export default function PostCard({ post, onEdit, onDelete, onLike }: PostCardPro
                         >
                             <FaComment />
                             <span className="text-sm">
-                                {comments[post._id]?.length || 0} Comentários
+                                {commentCounts[post._id] || 0} Comentários
                             </span>
                         </button>
                     </div>
@@ -154,6 +156,7 @@ export default function PostCard({ post, onEdit, onDelete, onLike }: PostCardPro
                 comments={comments[post._id] || []}
                 onAddComment={(content) => addComment(post._id, content)}
                 onDeleteComment={(commentId) => deleteComment(post._id, commentId)}
+                onLikeComment={(postId, commentId) => likeComment(postId, commentId)}
             />
         </>
     )

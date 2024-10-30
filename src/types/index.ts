@@ -3,6 +3,8 @@ export interface User {
     name: string
     email: string
     image?: string
+    followers?: string[] | User[]
+    following?: string[] | User[]
 }
 
 export interface Post {
@@ -19,6 +21,7 @@ export interface Comment {
     content: string
     author: User
     post: string
+    likes: User[]
     createdAt: string
     updatedAt: string
 }
@@ -35,6 +38,16 @@ export interface CommentSectionProps {
     comments: Comment[]
     onAddComment: (content: string) => Promise<boolean>
     onDeleteComment: (commentId: string) => Promise<boolean>
+}
+
+export interface CommentModalProps {
+    isOpen: boolean
+    onClose: () => void
+    post: Post
+    comments: Comment[]
+    onAddComment: (content: string) => Promise<boolean>
+    onDeleteComment: (commentId: string) => Promise<boolean>
+    onLikeComment: (postId: string, commentId: string) => Promise<boolean>
 }
 
 export interface ApiResponse<TData> {

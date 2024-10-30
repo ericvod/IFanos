@@ -1,18 +1,10 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useSession } from 'next-auth/react'
-import { FaTimes } from 'react-icons/fa'
+import { FaHeart, FaTimes } from 'react-icons/fa'
 import { Modal } from '../ui/Modal'
-import type { Post, Comment } from '@/types'
-
-interface CommentModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    post: Post;
-    comments: Comment[];
-    onAddComment: (content: string) => Promise<boolean>;
-    onDeleteComment: (commentId: string) => Promise<boolean>;
-}
+import type { Comment, CommentModalProps } from '@/types'
+import { Tooltip } from 'react-tooltip'
 
 export function CommentModal({
     isOpen,
@@ -20,11 +12,13 @@ export function CommentModal({
     post,
     comments,
     onAddComment,
-    onDeleteComment
+    onDeleteComment,
+    onLikeComment,
 }: CommentModalProps) {
     const { data: session } = useSession()
     const [newComment, setNewComment] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [showLikes, setShowLikes] = useState<{ [key: string]: boolean }>({})
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -43,6 +37,19 @@ export function CommentModal({
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleString('pt-BR')
+    }
+
+    const toggleLikes = (commentId: string) => {
+        setShowLikes(prev => ({
+            ...prev,
+            [commentId]: !prev[commentId]
+        }))
+    }
+
+    const getTooltipContent = (likes: Comment['likes']) => {
+        return likes.length > 0
+            ? likes.map(user => user.name).join(', ')
+            : 'Ninguém curtiu ainda'
     }
 
     return (
@@ -81,13 +88,15 @@ export function CommentModal({
                             key={comment._id}
                             className="flex space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                         >
-                            <Image
-                                src={comment.author.image || ''}
-                                alt={comment.author.name}
-                                width={32}
-                                height={32}
-                                className="rounded-full"
-                            />
+                            <div className="flex-shrink-0 w-8 h-8">
+                                <Image
+                                    src={comment.author.image || ''}
+                                    alt={comment.author.name}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full w-8 h-8 object-cover"
+                                />
+                            </div>
                             <div className="flex-1">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -98,18 +107,53 @@ export function CommentModal({
                                             {formatDate(comment.createdAt)}
                                         </span>
                                     </div>
-                                    {session?.user?.email === comment.author.email && (
-                                        <button
-                                            onClick={() => onDeleteComment(comment._id)}
-                                            className="text-gray-500 hover:text-red-500 dark:text-gray-400"
-                                        >
-                                            <FaTimes size={16} />
-                                        </button>
-                                    )}
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex items-center">
+                                            <button
+                                                onClick={() => onLikeComment(post._id, comment._id)}
+                                                className={`hover:scale-110 transition-transform
+                                                    ${comment.likes.some(like => like.email === session?.user?.email)
+                                                        ? 'text-red-500'
+                                                        : 'text-gray-500 dark:text-gray-400'
+                                                    }`}
+                                            >
+                                                <FaHeart className="text-xl" />
+                                            </button>
+                                            <span
+                                                onClick={() => toggleLikes(comment._id)}
+                                                className="ml-1 cursor-pointer text-sm"
+                                                data-tooltip-id={`comment-tooltip-${comment._id}`}
+                                            >
+                                                {comment.likes.length}
+                                            </span>
+                                            <Tooltip
+                                                id={`comment-tooltip-${comment._id}`}
+                                                content={getTooltipContent(comment.likes)}
+                                            />
+                                        </div>
+                                        {session?.user?.email === comment.author.email && (
+                                            <button
+                                                onClick={() => onDeleteComment(comment._id)}
+                                                className="text-gray-500 hover:text-red-500 dark:text-gray-400"
+                                            >
+                                                <FaTimes size={16} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <p className="mt-1 text-gray-700 dark:text-gray-300">
                                     {comment.content}
                                 </p>
+                                {showLikes[comment._id] && (
+                                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600/50 p-2 rounded">
+                                        <h4 className="font-semibold">Curtido por:</h4>
+                                        <ul>
+                                            {comment.likes.map(user => (
+                                                <li key={user._id}>{user.name}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -122,7 +166,7 @@ export function CommentModal({
                                 alt={session.user.name || ''}
                                 width={32}
                                 height={32}
-                                className="rounded-full"
+                                className="rounded-full w-12 h-12 object-cover"
                             />
                             <div className="flex-1">
                                 <textarea

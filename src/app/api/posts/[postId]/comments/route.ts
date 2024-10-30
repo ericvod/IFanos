@@ -16,6 +16,7 @@ export async function GET(
         const comments = await Comment.find({ post: params.postId })
             .sort({ createdAt: -1 })
             .populate('author', 'name email image')
+            .populate('likes', 'name email image')
 
         return NextResponse.json<ApiResponse<typeof comments>>({
             data: comments,

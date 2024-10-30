@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import ButtonLogout from '../auth/ButtonLogout'
 import { FaBars, FaMoon, FaSun, FaTimes } from 'react-icons/fa'
+import SearchBar from '../search/SearchBar'
 
 export default function Header() {
     const [isOpen, setIsOpen] = useState(false)
@@ -27,6 +28,9 @@ export default function Header() {
                                 IFanos
                             </span>
                         </Link>
+                        <div className="flex-1 mx-4 hidden md:flex justify-center">
+                            <SearchBar />
+                        </div>
                     </div>
                     <div className="-mr-2 -my-2 md:hidden">
                         <button
@@ -77,6 +81,9 @@ export default function Header() {
                 </div>
                 <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
                     <div className="pt-2 pb-3 space-y-1">
+                        <div className="px-3 py-2">
+                            <SearchBar />
+                        </div>
                         <Link
                             href="/home"
                             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-700"

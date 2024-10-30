@@ -5,16 +5,20 @@ import { withAuth } from '@/lib/middleware'
 import dbConnect from '@/lib/mongoose'
 import User from '@/models/User'
 
-export async function GET(request: Request, { params }: { params: { email: string } }) {
+export async function GET(
+    request: Request,
+    { params }: { params: { userId: string } }
+) {
     return withAuth(async (req, session) => {
         try {
-            if (session.user?.email !== params.email) {
-                throw new ApiError('Não autorizado', 403)
-            }
-
             await dbConnect()
 
-            const user = await User.findOne({ email: params.email }).select('-password')
+            const user = await User.findOne({
+                $or: [
+                    { _id: params.userId },
+                    { email: session.user.email }
+                ]
+            }).select('-password')
 
             if (!user) {
                 throw new ApiError('Usuário não encontrado', 404)

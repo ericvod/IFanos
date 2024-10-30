@@ -6,9 +6,25 @@ export const usePosts = (initialPosts: Post[] = []) => {
     const [editingPost, setEditingPost] = useState<Post | null>(null)
     const [content, setContent] = useState('')
     const [comments, setComments] = useState<{ [key: string]: Comment[] }>({})
+    const [commentCounts, setCommentCounts] = useState<{ [key: string]: number }>({})
     const [isLoading, setIsLoading] = useState(false)
-    
+
     const initialFetchDone = useRef(false)
+
+    const fetchCommentCount = useCallback(async (postId: string) => {
+        try {
+            const response = await fetch(`/api/posts/${postId}/comments/count`)
+            if (response.ok) {
+                const { data } = await response.json()
+                setCommentCounts(prev => ({
+                    ...prev,
+                    [postId]: data
+                }))
+            }
+        } catch (error) {
+            console.error('Erro ao buscar contagem de comentários:', error)
+        }
+    }, [])
 
     const fetchPosts = useCallback(async () => {
         if (isLoading) return
@@ -20,6 +36,9 @@ export const usePosts = (initialPosts: Post[] = []) => {
             if (response.ok) {
                 const json = await response.json()
                 setPosts(json.data || [])
+                json.data?.forEach((post: Post) => {
+                    fetchCommentCount(post._id)
+                })
             }
         } catch (error) {
             console.error('Erro ao buscar posts:', error)
@@ -27,7 +46,8 @@ export const usePosts = (initialPosts: Post[] = []) => {
         } finally {
             setIsLoading(false)
         }
-    }, [isLoading])
+    }, [isLoading, fetchCommentCount])
+
 
     useEffect(() => {
         if (!initialFetchDone.current) {
@@ -151,6 +171,10 @@ export const usePosts = (initialPosts: Post[] = []) => {
                     ...prev,
                     [postId]: [newComment, ...(prev[postId] || [])]
                 }))
+                setCommentCounts(prev => ({
+                    ...prev,
+                    [postId]: (prev[postId] || 0) + 1
+                }))
                 return true
             }
             return false
@@ -171,11 +195,38 @@ export const usePosts = (initialPosts: Post[] = []) => {
                     ...prev,
                     [postId]: prev[postId]?.filter(comment => comment._id !== commentId) || []
                 }))
+                setCommentCounts(prev => ({
+                    ...prev,
+                    [postId]: Math.max((prev[postId] || 0) - 1, 0)
+                }))
                 return true
             }
             return false
         } catch (error) {
             console.error('Erro ao deletar comentário:', error)
+            return false
+        }
+    }, [])
+
+    const likeComment = useCallback(async (postId: string, commentId: string) => {
+        try {
+            const response = await fetch(`/api/posts/${postId}/comments/${commentId}/like`, {
+                method: 'POST',
+            })
+
+            if (response.ok) {
+                const { data: updatedComment } = await response.json()
+                setComments(prev => ({
+                    ...prev,
+                    [postId]: prev[postId]?.map(comment =>
+                        comment._id === commentId ? updatedComment : comment
+                    ) || []
+                }))
+                return true
+            }
+            return false
+        } catch (error) {
+            console.error('Erro ao curtir comentário:', error)
             return false
         }
     }, [])
@@ -195,5 +246,7 @@ export const usePosts = (initialPosts: Post[] = []) => {
         fetchComments,
         addComment,
         deleteComment,
+        commentCounts,
+        likeComment,
     }
 }
